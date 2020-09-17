@@ -1,7 +1,48 @@
 const { body, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 const ZuriIntern = require('../models/ZuriInternModel');
+
 const { responseHandler } = require('../utils/responseHandler');
+
+// Zuri Get all interns
+const getAllInterns = async (req, res) => {
+  let searchValue;
+  // Zuri  query value
+  if (req.query.firstName) {
+    searchValue = {
+      firstName: req.query.firstName
+    };
+    // get all interns
+  } else {
+    searchValue = {};
+  }
+  try {
+    const zuriInterns = await ZuriIntern.find(searchValue);
+    return responseHandler(res, 'Success', 200, true, zuriInterns);
+  } catch (err) {
+    return responseHandler(res, 'An Error occured', 500, false, err);
+  }
+};
+
+// Zuri Filter interns based on track i.e backend frontend
+const filterInterns = async (req, res) => {
+  let filterValue;
+  if (req.query.track) {
+    filterValue = {
+      track: req.query.firstName
+    };
+  } else {
+    filterValue = {
+      track: ''
+    };
+  }
+  try {
+    const zuriInterns = await ZuriIntern.find(filterValue);
+    return responseHandler(res, 'Success', 200, true, zuriInterns);
+  } catch (err) {
+    return responseHandler(res, 'An Error occured', 500, false, err);
+  }
+};
 
 // Zuri Intern Validation rules
 const zuriInternValidationRules = () => [
@@ -31,31 +72,44 @@ const zuriInternApplication = async (req, res, next) => {
     // check if the email is already in use
     const intern = await ZuriIntern.findOne({ email });
     if (intern) {
-      return responseHandler(res, 'Email address already used for application', 400, true);
+      return responseHandler(
+        res,
+        'Email address already used for application',
+        400,
+        true
+      );
     }
     // create the new intern application
     let newIntern = new ZuriIntern(req.body);
     newIntern = await newIntern.save();
-    return responseHandler(res, ' Application is successful', 201, true, { intern: newIntern });
+    return responseHandler(res, ' Application is successful', 201, true, {
+      intern: newIntern
+    });
   } catch (err) {
     return next(err);
   }
 };
 
-const getAllInterns = async (req, res) => {
-  try {
-    const zuriInterns = await ZuriIntern.find();
-    return responseHandler(res, 'Success', 200, true, zuriInterns);
-  } catch (err) {
-    return responseHandler(res, 'Error', 500, false, err);
+const getZuriInternByID = async (req, res, next) => {
+  const internId = req.params.id;
+  if (!mongoose.isValidObjectId(internId)) {
+    return responseHandler(res, 'Invalid Id for a intern', 400);
   }
-}
-
-
-
+  try {
+    const intern = await Intern.findOne({ _id: internId });
+    if (!intern) {
+      return responseHandler(res, 'Intern not found', 404);
+    }
+    return responseHandler(res, 'Intern', 200, true, { intern });
+  } catch (err) {
+    return next(err);
+  }
+};
 
 module.exports = {
   zuriInternValidationRules,
   zuriInternApplication,
-  getAllInterns
+  getAllInterns,
+  getZuriInternByID,
+  filterInterns
 };
